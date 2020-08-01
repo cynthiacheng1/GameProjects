@@ -10,6 +10,7 @@
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "ShaderProgram.h"
+#include <SDL_mixer.h>
 
 SDL_Window* displayWindow;
 bool gameIsRunning = true;
@@ -25,16 +26,18 @@ glm::vec3 ball_position = glm::vec3(0,0,0);
 glm::vec3 ball_movement = glm::vec3(0,0,0);
 float player_speed = 1.0f;
 
-
+Mix_Music *music;
+Mix_Chunk *bounce;
 
 void Initialize() {
     //initializing SDL
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     //create a window(title, centered, pixels, openGL context)
     displayWindow = SDL_CreateWindow("Pong", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 240, SDL_WINDOW_OPENGL);
     //open GL context + draw to that window
     SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
     SDL_GL_MakeCurrent(displayWindow, context);
+    
 
 #ifdef _WINDOWS
     glewInit();
@@ -45,7 +48,14 @@ void Initialize() {
 
     //setting up shader program, use this to fill in points
     program.Load("shaders/vertex.glsl", "shaders/fragment.glsl");
-
+    
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+    music = Mix_LoadMUS("dooblydoo.mp3");
+    Mix_PlayMusic(music, -1);
+    Mix_VolumeMusic(MIX_MAX_VOLUME/4);
+    
+    bounce = Mix_LoadWAV("bounce.wav");
+    
     //identity matrix
     viewMatrix = glm::mat4(1.0f);
     player1Matrix = glm::mat4(1.0f);
@@ -74,6 +84,7 @@ void Initialize() {
     
     //background color - whenever you clear the screen use this color
     glClearColor(0.7f, 0.6f, 0.85f, 1.0f);
+    
 }
 
 void ProcessInput() {
@@ -141,7 +152,7 @@ void Update() {
     float deltaTime = ticks - lastTicks;
     lastTicks = ticks;
 
-    player1_position += player1_movement*player_speed*deltaTime;
+    //player1_position += player1_movement*player_speed*deltaTime;
     if (player1_position.y > 2.7 ){
         if (player1_movement.y < 0){
             player1_position += player1_movement*player_speed*deltaTime;
@@ -195,6 +206,7 @@ void Update() {
         ball_position += ball_movement*player_speed*deltaTime;
         ballMatrix = glm::translate(ballMatrix, ball_position);
         x_direction = -1;
+        Mix_PlayChannel(-1,bounce,0);
     }
     else if (xdist_p2<0 && ydist_p2<0){
         ballMatrix = glm::mat4(1.0f);
@@ -203,6 +215,7 @@ void Update() {
         ball_position += ball_movement*player_speed*deltaTime;
         ballMatrix = glm::translate(ballMatrix, ball_position);
         x_direction = 1;
+        Mix_PlayChannel(-1,bounce,0);
     }
     //top wall
     if (ball_position.y > 3.5){
@@ -212,6 +225,7 @@ void Update() {
         ball_position += ball_movement*player_speed*deltaTime;
         ballMatrix = glm::translate(ballMatrix, ball_position);
         y_direction = -1;
+        Mix_PlayChannel(-1,bounce,0);
     }
     //bottom wall
     else if (ball_position.y < -3.5){
@@ -221,6 +235,7 @@ void Update() {
         ball_position += ball_movement*player_speed*deltaTime;
         ballMatrix = glm::translate(ballMatrix, ball_position);
         y_direction = 1;
+        Mix_PlayChannel(-1,bounce,0);
     }
     else if (ball_position.x > 4.4 ||ball_position.x < -4.3){
         gameIsRunning = false;
